@@ -29,7 +29,7 @@ import {
   PhoneCall,
 } from "lucide-react";
 import { trackSimulatorEngagement } from "../utils/analytics";
-import { savePipelineSimulation } from "../lib/supabase";
+import { savePipelineSimulation, saveConsultationBooking } from "../lib/supabase";
 
 interface ICPProfile {
   id: string;
@@ -296,9 +296,40 @@ export const PipelineSimulator: React.FC<{ compact?: boolean }> = ({ compact = f
     setTimeout(() => setCopied(false), 2500);
   };
 
-  const handleQuickSubmit = (e: React.FormEvent) => {
+  const [isSavingModal, setIsSavingModal] = useState<boolean>(false);
+
+  const handleQuickSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setQuickFormSubmitted(true);
+    setIsSavingModal(true);
+
+    try {
+      // 1. Save detailed simulation stats with contact email to pipeline_simulations table
+      await savePipelineSimulation({
+        icp_name: selectedICP.name,
+        monthly_leads: monthlyLeads,
+        deal_value_acv: dealValueACV,
+        projected_pipeline: projectedPipelineValue,
+        projected_closed_revenue: projectedMonthlyRevenue,
+        roi_multiple: Math.round((projectedMonthlyRevenue / 4000) * 10) / 10,
+        contact_email: workEmail,
+      });
+
+      // 2. Save consultation booking lead with user name and contact info to consultation_bookings table
+      await saveConsultationBooking({
+        name: fullName,
+        email: workEmail,
+        company: `${selectedICP.name} ($${(projectedPipelineValue / 1000).toFixed(0)}k/mo pipeline)`,
+        priority: "14-Day Ignition Sprint (Simulator Blueprint)",
+        selected_date: "Pipeline Blueprint Request",
+        selected_time: "Immediate Deployment",
+        notes: `Target Sector: ${selectedICP.name}, Monthly Leads: ${monthlyLeads}, ACV: $${dealValueACV}, Est Closed Revenue: $${projectedMonthlyRevenue}/mo, Projected Pipeline: $${projectedPipelineValue}/mo`,
+      });
+    } catch (err) {
+      console.warn("Error saving simulator blueprint:", err);
+    } finally {
+      setIsSavingModal(false);
+      setQuickFormSubmitted(true);
+    }
   };
 
   return (
@@ -821,10 +852,20 @@ export const PipelineSimulator: React.FC<{ compact?: boolean }> = ({ compact = f
 
                   <button
                     type="submit"
-                    className="w-full py-3 rounded-xl bg-primary text-on-primary font-bold text-sm shadow-md hover:bg-primary/90 transition-all flex items-center justify-center gap-2 mt-4"
+                    disabled={isSavingModal}
+                    className="w-full py-3 rounded-xl bg-primary text-on-primary font-bold text-sm shadow-md hover:bg-primary/90 transition-all flex items-center justify-center gap-2 mt-4 disabled:opacity-75 cursor-pointer"
                   >
-                    <span>Confirm & Get Deployment Brief</span>
-                    <ArrowRight size={15} />
+                    {isSavingModal ? (
+                      <>
+                        <div className="w-4 h-4 rounded-full border-2 border-on-primary border-t-transparent animate-spin" />
+                        <span>Reserving Your Blueprint...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Confirm & Get Deployment Brief</span>
+                        <ArrowRight size={15} />
+                      </>
+                    )}
                   </button>
                 </form>
               </div>
