@@ -58,6 +58,22 @@ export interface DiagnosticRecord {
 
 // 1. Save Consultation Booking
 export async function saveConsultationBooking(booking: ConsultationBooking) {
+  // Method A: Direct Backend Serverless API (Connects to PostgreSQL database)
+  try {
+    const res = await fetch("/api/booking", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(booking),
+    });
+    if (res.ok) {
+      const json = await res.json();
+      return { success: true, data: json.data };
+    }
+  } catch {
+    // API endpoint might not be active in pure static dev without backend, continue to fallback
+  }
+
+  // Method B: Client-side Supabase SDK
   if (supabase) {
     try {
       const { data, error } = await supabase
@@ -75,14 +91,13 @@ export async function saveConsultationBooking(booking: ConsultationBooking) {
         ])
         .select();
 
-      if (error) throw error;
-      return { success: true, data };
+      if (!error && data) return { success: true, data };
     } catch (err) {
-      console.warn("Supabase insert warning (storing locally as fallback):", err);
+      console.warn("Supabase direct insert warning:", err);
     }
   }
 
-  // Fallback to localStorage persistence
+  // Method C: Resilient local fallback
   const existing = JSON.parse(localStorage.getItem("scaleforge_bookings") || "[]");
   existing.push({ ...booking, timestamp: new Date().toISOString() });
   localStorage.setItem("scaleforge_bookings", JSON.stringify(existing));
@@ -91,6 +106,22 @@ export async function saveConsultationBooking(booking: ConsultationBooking) {
 
 // 2. Save Pipeline Simulator Run
 export async function savePipelineSimulation(sim: PipelineSimulationRecord) {
+  // Method A: Direct Backend Serverless API
+  try {
+    const res = await fetch("/api/simulation", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(sim),
+    });
+    if (res.ok) {
+      const json = await res.json();
+      return { success: true, data: json.data };
+    }
+  } catch {
+    // Fallback
+  }
+
+  // Method B: Supabase client SDK
   if (supabase) {
     try {
       const { data, error } = await supabase
@@ -108,8 +139,7 @@ export async function savePipelineSimulation(sim: PipelineSimulationRecord) {
         ])
         .select();
 
-      if (error) throw error;
-      return { success: true, data };
+      if (!error && data) return { success: true, data };
     } catch (err) {
       console.warn("Supabase simulation insert warning:", err);
     }
@@ -120,6 +150,22 @@ export async function savePipelineSimulation(sim: PipelineSimulationRecord) {
 
 // 3. Save Diagnostic Results
 export async function saveDiagnosticAssessment(diagnostic: DiagnosticRecord) {
+  // Method A: Direct Backend Serverless API
+  try {
+    const res = await fetch("/api/diagnostic", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(diagnostic),
+    });
+    if (res.ok) {
+      const json = await res.json();
+      return { success: true, data: json.data };
+    }
+  } catch {
+    // Fallback
+  }
+
+  // Method B: Supabase client SDK
   if (supabase) {
     try {
       const { data, error } = await supabase
@@ -136,8 +182,7 @@ export async function saveDiagnosticAssessment(diagnostic: DiagnosticRecord) {
         ])
         .select();
 
-      if (error) throw error;
-      return { success: true, data };
+      if (!error && data) return { success: true, data };
     } catch (err) {
       console.warn("Supabase diagnostic insert warning:", err);
     }
