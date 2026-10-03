@@ -7,7 +7,7 @@ const pool = new Pool({
   connectionString:
     process.env.DATABASE_URL ||
     process.env.POSTGRES_URL ||
-    "postgresql://postgres:Gurgaon%40471062@db.yqzjtmsxuveckjmatwuu.supabase.co:5432/postgres",
+    "postgresql://postgres.yqzjtmsxuveckjmatwuu:Gurgaon%40471062@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres",
   ssl: { rejectUnauthorized: false },
 });
 
